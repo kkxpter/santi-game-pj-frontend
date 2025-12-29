@@ -1,10 +1,11 @@
 // app/game/chat/data.ts
 
+// ✅ 1. ต้อง Export Type พวกนี้ เพื่อให้หน้า page.tsx เรียกใช้ได้
 export type Choice = {
   text: string;
   isCorrect?: boolean;
   reaction: string;
-  next?: ChatScenario; // Recursive type for nested scenarios
+  next?: ChatScenario; // เชื่อมโยงไปสถานการณ์ถัดไป (Nested)
   memeTitle?: string;
   memeDesc?: string;
   memeIcon?: string;
@@ -12,14 +13,15 @@ export type Choice = {
 };
 
 export type ChatScenario = {
-  name?: string; // Optional for nested levels
+  name?: string;
   avatar?: string;
   lossType?: 'money' | 'data';
   msgs: string[];
-  choices: [Choice, Choice];
-  reaction?: string; // For recursive structure compatibility
+  choices: [Choice, Choice]; // บังคับว่าต้องมี 2 ทางเลือก
+  reaction?: string;
 };
 
+// ✅ 2. ข้อมูลเกม (Chat Data)
 export const chatData: ChatScenario[] = [
   // 1. แก๊งคอลเซ็นเตอร์
   {
@@ -125,5 +127,33 @@ export const chatData: ChatScenario[] = [
       },
     ] as [Choice, Choice],
   },
-  // เพิ่มข้ออื่นๆ ตามต้องการ...
+  // 3. Phishing Link
+  {
+    name: "Facebook Security",
+    avatar: "🛡️",
+    lossType: "data",
+    msgs: [
+      "แจ้งเตือน: บัญชีของคุณละเมิดมาตรฐานชุมชน",
+      "ระบบจะปิดบัญชีถาวรใน 24 ชม.",
+      "ยืนยันตัวตนที่ลิงก์นี้: bit.ly/verify-fb-now"
+    ],
+    choices: [
+      {
+        text: "A: อย่านะ! รีบกดลิงก์แก้ข่าว",
+        isCorrect: false,
+        reaction: "(เว็บปลอมดักรหัสผ่านเรียบร้อย)",
+        memeTitle: "HACKED!",
+        memeDesc: "ลิงก์ปลอมดูดรหัสผ่านเกลี้ยง เฟซปลิวแน่นอน",
+        memeIcon: "💻",
+      },
+      {
+        text: "B: ลิงก์อะไรแปลกๆ ไม่กดหรอก",
+        isCorrect: true,
+        reaction: "...",
+        memeTitle: "BIG BRAIN",
+        memeDesc: "สุดยอด! สังเกต URL เป็น ไม่ตกเป็นเหยื่อ",
+        memeIcon: "🧠",
+      }
+    ] as [Choice, Choice]
+  }
 ];
