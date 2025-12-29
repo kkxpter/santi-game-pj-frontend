@@ -1,93 +1,149 @@
-import Link from 'next/link';
-import MatrixBackground from '@/components/MatrixBackground';
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import MatrixBg from '@/components/MatrixBg';
+// ตรวจสอบ path ให้ตรงกับเครื่องคุณ (เช่น @/lib/sound หรือ @/app/lib/sound)
+import { playSound } from '@/app/lib/sound'; 
 
-export default function Home() {
+export default function HomePage() {
+  const router = useRouter();
+  const [view, setView] = useState<'home' | 'bet'>('home');
+  
+  // ✅ แก้ไข 1: เพิ่ม chat: 0 ลงไปในค่าเริ่มต้น
+  const [stats, setStats] = useState({ normal: 0, virus: 0, chat: 0 });
+
+  // โหลดสถิติ
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const saved = JSON.parse(localStorage.getItem('cyberStakes_played') || '{}');
+    
+    // ✅ แก้ไข 2: อ่านค่า chat จาก localStorage ด้วย
+    setStats({ 
+      normal: saved.normal || 0, 
+      virus: saved.virus || 0,
+      chat: saved.chat || 0 
+    });
+  }, []);
+
+  const handleStart = (mode: string) => {
+    playSound('click');
+    if (mode === 'normal') {
+      setView('bet'); 
+    } else if (mode === 'virus') {
+      router.push('/game/virus'); 
+    } else if (mode === 'chat') {  // ✅ เพิ่มโหมด Chat
+      router.push('/game/chat');
+    }
+  };
+
+  const selectDifficulty = (diff: string) => {
+    playSound('click');
+    router.push(`/game/quiz?diff=${diff}`); 
+  };
+
   return (
-    // Container หลัก: พื้นหลังดำสนิท
-    <div className="relative w-full min-h-screen flex flex-col justify-center items-center p-4 font-sans overflow-hidden bg-[#050505]">
+    <main className="relative w-screen h-screen flex flex-col items-center justify-center p-4">
+      <MatrixBg />
       
-      {/* Background Effects */}
-      <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900/40 via-[#050505] to-[#050505]"></div>
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-30 mix-blend-screen">
-         <MatrixBackground />
-      </div>
-
-      {/* ✅ Main Card: กล่องกระจกรมดำ + แสงเรืองรอง (ไม่มีขอบแข็ง) */}
-      <div 
-        className="relative z-10 w-full bg-zinc-900/40 backdrop-blur-xl rounded-[40px] p-8 shadow-[0_0_80px_-20px_rgba(16,185,129,0.4)] animate-enter"
-        style={{ width: '100%', maxWidth: '380px' }} 
-      >
-        
-        {/* --- Logo Section --- */}
-        <div className="flex justify-center mb-8 relative">
-          {/* แสงฟุ้งหลังโลโก้ */}
-          <div className="absolute inset-0 bg-emerald-500/30 blur-3xl rounded-full animate-pulse-slow"></div>
+      {/* --- VIEW 1: หน้าเลือกเกม (HOME) --- */}
+      {view === 'home' && (
+        <div className="relative w-full max-w-sm bg-black/70 backdrop-blur-xl border border-white/15 rounded-3xl p-6 animate-fade-in z-10 hud-card">
           
-          <div className="w-28 h-28 rounded-full bg-gradient-to-b from-zinc-800 to-black flex items-center justify-center relative shadow-2xl z-10 p-1">
-             <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center border border-emerald-500/30">
-                <div className="text-6xl animate-bounce drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]">👾</div>
-             </div>
+          {/* Logo Animation */}
+          <div className="flex justify-center mb-5 relative">
+            <div className="w-20 h-20 rounded-full border border-green-500/30 flex items-center justify-center bg-green-500/5 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+              <div className="absolute inset-0 border-t-2 border-green-400 rounded-full animate-spin-slow"></div>
+              <div className="text-4xl animate-pulse relative z-10">👾</div>
+            </div>
+          </div>
+
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-black text-white uppercase tracking-wide leading-none text-shadow-green">
+              เดิมพัน<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">ไซเบอร์</span>
+            </h1>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {/* 1. ปุ่มโหมด Quiz */}
+            <button onClick={() => handleStart('normal')} className="btn-menu-sleek green group">
+              <div className="flex items-center gap-3">
+                <div className="icon-box">🧠</div>
+                <div className="text-left">
+                  <div className="font-bold text-white group-hover:text-green-400 transition-colors">โหมดตอบคำถาม</div>
+                  <div className="text-[10px] text-gray-400 font-mono">เล่นจบ: <span className="text-green-400 font-bold">{stats.normal}</span> รอบ</div>
+                </div>
+              </div>
+              <div className="text-green-500 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">→</div>
+            </button>
+
+            {/* 2. ปุ่มโหมด Virus */}
+            <button onClick={() => handleStart('virus')} className="btn-menu-sleek red group">
+              <div className="flex items-center gap-3">
+                <div className="icon-box text-red-400 border-red-500/30">🔨</div>
+                <div className="text-left">
+                  <div className="font-bold text-white group-hover:text-red-400 transition-colors">Virus Smasher</div>
+                  <div className="text-[10px] text-gray-400 font-mono">Action Mode</div>
+                </div>
+              </div>
+              <div className="text-red-500 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">→</div>
+            </button>
+
+            {/* 3. ปุ่มโหมด Chat (เพิ่มใหม่) */}
+            <button onClick={() => handleStart('chat')} className="btn-menu-sleek blue group">
+                <div className="flex items-center gap-3">
+                    <div className="icon-box text-blue-400 border-blue-500/30">💬</div>
+                    <div className="text-left">
+                        <div className="font-bold text-white group-hover:text-blue-400 transition-colors">Chat Defender</div>
+                        {/* ตอนนี้ stats.chat จะไม่ Error แล้ว */}
+                        <div className="text-[10px] text-gray-400 font-mono">เล่นจบ: <span className="text-blue-400 font-bold">{stats.chat}</span> รอบ</div>
+                    </div>
+                </div>
+                <div className="text-blue-500 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">→</div>
+            </button>
+
           </div>
         </div>
+      )}
 
-        {/* --- Title Section --- */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-black text-white uppercase tracking-wider mb-2 leading-none drop-shadow-lg">
-            เดิมพัน<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 animate-pulse">ไซเบอร์</span>
-          </h1>
-          <div className="inline-block px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-[10px] text-emerald-400 font-mono tracking-[0.2em] uppercase">Cyber Security Game</p>
-          </div>
-        </div>
-
-        {/* --- Menu Buttons --- */}
-        <div className="flex flex-col gap-4">
+      {/* --- VIEW 2: หน้าเลือกระดับความยาก (BET) --- */}
+      {view === 'bet' && (
+        <div className="relative w-full max-w-sm bg-black/70 backdrop-blur-xl border border-white/15 rounded-3xl p-6 animate-fade-in z-10 hud-card">
+          <h2 className="text-2xl font-black text-white text-center mb-6 uppercase tracking-wider">ระดับความยาก</h2>
           
-          {/* 1. Quiz Mode (Green Theme) */}
-          <Link href="/quiz" className="group relative w-full p-4 rounded-2xl bg-gradient-to-r from-zinc-900 to-black hover:from-emerald-900/20 hover:to-zinc-900 border border-white/5 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.3)] hover:-translate-y-1">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-2xl border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-all">🧠</div>
-                <div className="text-left flex-1">
-                    <div className="font-bold text-white text-lg group-hover:text-emerald-400 transition">โหมดตอบคำถาม</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider group-hover:text-zinc-300">Quiz Challenge</div>
+          <div className="flex flex-col gap-3">
+             <button onClick={() => selectDifficulty('easy')} className="btn-menu-sleek green justify-start gap-4 h-20 px-4 group">
+                <span className="text-2xl group-hover:scale-110 transition-transform">🟢</span>
+                <div className="text-left">
+                    <div className="font-bold text-white text-lg group-hover:text-green-400 transition-colors">มือใหม่ (Easy)</div>
+                    <div className="text-xs text-gray-400 font-mono">⏳ 20 วินาที | 20 คะแนน</div>
                 </div>
-                <div className="text-zinc-600 group-hover:text-emerald-400 text-xl transition-transform group-hover:translate-x-1">➜</div>
-            </div>
-          </Link>
+             </button>
 
-          {/* 2. Virus Smasher (Red Theme) */}
-          <Link href="/virus" className="group relative w-full p-4 rounded-2xl bg-gradient-to-r from-zinc-900 to-black hover:from-rose-900/20 hover:to-zinc-900 border border-white/5 hover:border-rose-500/50 transition-all duration-300 hover:shadow-[0_0_30px_-10px_rgba(244,63,94,0.3)] hover:-translate-y-1">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-rose-500/10 rounded-xl flex items-center justify-center text-2xl border border-rose-500/20 group-hover:bg-rose-500 group-hover:text-black transition-all">🔨</div>
-                <div className="text-left flex-1">
-                    <div className="font-bold text-white text-lg group-hover:text-rose-400 transition">ทุบไวรัส</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider group-hover:text-zinc-300">Virus Smasher</div>
+             <button onClick={() => selectDifficulty('medium')} className="btn-menu-sleek text-yellow-500 border-yellow-500/30 justify-start gap-4 h-20 px-4 hover:border-yellow-500 group">
+                <span className="text-2xl group-hover:scale-110 transition-transform">🟡</span>
+                <div className="text-left">
+                    <div className="font-bold text-white text-lg group-hover:text-yellow-400 transition-colors">ทั่วไป (Normal)</div>
+                    <div className="text-xs text-gray-400 font-mono">⏳ 15 วินาที | 30 คะแนน</div>
                 </div>
-                <div className="text-zinc-600 group-hover:text-rose-400 text-xl transition-transform group-hover:translate-x-1">➜</div>
-            </div>
-          </Link>
+             </button>
 
-          {/* 3. Chat Defender (Blue Theme) */}
-          <Link href="/chat" className="group relative w-full p-4 rounded-2xl bg-gradient-to-r from-zinc-900 to-black hover:from-blue-900/20 hover:to-zinc-900 border border-white/5 hover:border-blue-500/50 transition-all duration-300 hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)] hover:-translate-y-1">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-2xl border border-blue-500/20 group-hover:bg-blue-500 group-hover:text-black transition-all">💬</div>
-                <div className="text-left flex-1">
-                    <div className="font-bold text-white text-lg group-hover:text-blue-400 transition">แชทลวงโลก</div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider group-hover:text-zinc-300">Chat Defender</div>
+             <button onClick={() => selectDifficulty('hard')} className="btn-menu-sleek text-red-500 border-red-500/30 justify-start gap-4 h-20 px-4 hover:border-red-500 group">
+                <span className="text-2xl animate-pulse group-hover:scale-110 transition-transform">🔴</span>
+                <div className="text-left">
+                    <div className="font-bold text-white text-lg group-hover:text-red-400 transition-colors">มหาเทพ (Hard)</div>
+                    <div className="text-xs text-gray-400 font-mono">⏳ 10 วินาที | 40 คะแนน</div>
                 </div>
-                <div className="text-zinc-600 group-hover:text-blue-400 text-xl transition-transform group-hover:translate-x-1">➜</div>
-            </div>
-          </Link>
+             </button>
+          </div>
 
+          <button 
+            onClick={() => { playSound('click'); setView('home'); }} 
+            className="w-full mt-6 text-xs text-gray-500 hover:text-white flex justify-center items-center gap-1 transition-colors"
+          >
+            <span>←</span> กลับหน้าหลัก
+          </button>
         </div>
-
-        {/* Footer Credit */}
-        <div className="mt-8 text-center">
-            <p className="text-[10px] text-zinc-600 font-mono tracking-widest">SECURE CONNECTION • v1.0</p>
-        </div>
-
-      </div>
-    </div>
+      )}
+    </main>
   );
 }
