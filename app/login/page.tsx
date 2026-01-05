@@ -92,7 +92,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* ✅ 2. แก้ไขส่วนล่างสุด เป็นปุ่มไปหน้าสมัครสมาชิก5555555555555 */}
+        {/* ✅ 2. แก้ไขส่วนล่างสุด เป็นปุ่มไปหน้าสมัครสมาชิก6666666 */}
         <div className="mt-8 text-center">
           <p className="text-gray-400 text-sm">
             ยังไม่มีบัญชีใช่ไหม?{' '}
