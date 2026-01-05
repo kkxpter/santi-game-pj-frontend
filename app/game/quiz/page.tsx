@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react'; // ✅ เพิ่ม Suspense
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
