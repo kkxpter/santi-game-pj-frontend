@@ -1,8 +1,11 @@
 'use client';
 
-// 1. เพิ่ม Suspense ใน import
+// 1. บังคับให้หน้านี้ไม่ต้อง Prerender (แก้ปัญหา Build Error ชะงัดนัก)
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+// เช็ค path ให้ถูกนะครับ
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
 
@@ -10,9 +13,7 @@ interface GameQuestion extends Question {
   shuffledOptions: { text: string; isCorrect: boolean }[];
 }
 
-// ... (ส่วน RANK_INFO, MOCK_PLAYERS, getGameSettings, generateQuestions เหมือนเดิม ไม่ต้องแก้) ...
-// ... (ส่วน function QuizGame(...) ทั้งก้อน เหมือนเดิม ไม่ต้องแก้) ...
-
+// ... ส่วน Data คงเดิม ...
 const RANK_INFO = [
   { title: "ตู้ ATM เดินได้", icon: "💸", desc: "กดปุ๊บ เงินไหลออกปั๊บ... สแกมเมอร์รักคุณที่สุด!", color: "from-gray-400 to-gray-600" },
   { title: "น้องหมูหวาน", icon: "🐷", desc: "หวานเจี๊ยบ... เคี้ยวง่าย อร่อยเหาะสำหรับโจร", color: "from-orange-400 to-red-400" },
@@ -55,7 +56,7 @@ const generateQuestions = (diff: string): GameQuestion[] => {
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
   const settings = getGameSettings(diff);
-  // ... (เนื้อหาใน QuizGame คงเดิมทุกประการ ไม่ต้องแก้) ...
+
   const [questions] = useState<GameQuestion[]>(() => generateQuestions(diff));
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
@@ -84,8 +85,11 @@ function QuizGame({ diff }: { diff: string }) {
     
     setFinalLeaderboard(newBoard);
 
-    const saved = JSON.parse(localStorage.getItem('cyberStakes_played') || '{}');
-    localStorage.setItem('cyberStakes_played', JSON.stringify({ ...saved, [diff]: (saved[diff] || 0) + 1 }));
+    // เช็คว่ารันบน browser ก่อนเรียก localStorage (กันเหนียว)
+    if (typeof window !== 'undefined') {
+        const saved = JSON.parse(localStorage.getItem('cyberStakes_played') || '{}');
+        localStorage.setItem('cyberStakes_played', JSON.stringify({ ...saved, [diff]: (saved[diff] || 0) + 1 }));
+    }
   }, [diff, score]);
 
   const getRank = (finalScore: number) => {
@@ -206,6 +210,7 @@ function QuizGame({ diff }: { diff: string }) {
     const myRank = getRank(score);
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-slate-900 p-4 relative z-50 overflow-hidden font-sans">
+        {/* Background & Ambience */}
         <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0a0a0a] to-black"></div>
             <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 blur-[120px] animate-pulse-slow"></div>
@@ -216,6 +221,7 @@ function QuizGame({ diff }: { diff: string }) {
         <div className="relative z-10 w-full max-w-6xl bg-[#0f0f11]/80 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-6 md:p-10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-enter overflow-hidden flex flex-col md:flex-row h-[85vh]">
             <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-gradient-to-r from-transparent via-${myRank.color.split(' ')[1].replace('to-', '')} to-transparent blur-sm`}></div>
 
+            {/* Left Side */}
             <div className="flex-none w-full md:w-[40%] flex flex-col items-center justify-center text-center p-4 border-b md:border-b-0 md:border-r border-white/5 relative z-20">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-md shadow-lg">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -246,6 +252,7 @@ function QuizGame({ diff }: { diff: string }) {
                 </div>
             </div>
 
+            {/* Right Side - Leaderboard */}
             <div className="flex-1 flex flex-col p-4 md:pl-8 h-full overflow-hidden">
                 <div className="flex-none flex items-center justify-between mb-4">
                     <h3 className="text-xl md:text-2xl text-white font-black italic tracking-wide flex items-center gap-3">
@@ -342,16 +349,18 @@ function QuizGame({ diff }: { diff: string }) {
                     </button>
                 </div>
             </div>
-
         </div>
       </div>
     );
   }
 
+  // 3. Playing Screen
   const currentQ = questions[currentIdx];
 
   return (
     <div className="relative h-screen w-screen flex flex-col p-4 overflow-hidden bg-slate-900 font-sans">
+      
+      {/* Background Layer */}
       <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-slate-900 to-black"></div>
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/30 blur-[120px] animate-pulse-slow mix-blend-screen"></div>
@@ -359,7 +368,10 @@ function QuizGame({ diff }: { diff: string }) {
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"></div>
       </div>
 
+      {/* Main Wrapper */}
       <div className={`relative z-10 flex flex-col h-full w-full max-w-3xl mx-auto transition-all duration-300 ${feedback ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+        
+        {/* Header */}
         <header className="relative bg-white/5 backdrop-blur-xl border border-white/10 flex justify-between items-center p-3 rounded-2xl mb-4 shadow-lg">
             <div className="flex items-center gap-3">
                 <button 
@@ -387,6 +399,7 @@ function QuizGame({ diff }: { diff: string }) {
             </div>
         </header>
 
+        {/* Question Area */}
         <main className="relative flex-1 flex flex-col items-center justify-center w-full">
             <div className="w-full h-3 bg-white/10 rounded-full mb-6 overflow-hidden border border-white/5">
                 <div 
@@ -429,6 +442,7 @@ function QuizGame({ diff }: { diff: string }) {
         </main>
       </div>
 
+      {/* Feedback Overlay */}
       {feedback && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
@@ -465,7 +479,7 @@ function QuizGame({ diff }: { diff: string }) {
 }
 
 // ------------------------------------------------
-// 2. สร้าง Component ใหม่สำหรับดึงค่า URL
+// Component แยก Logic การอ่าน URL
 // ------------------------------------------------
 function QuizContent() {
   const searchParams = useSearchParams();
@@ -477,7 +491,7 @@ function QuizContent() {
 }
 
 // ------------------------------------------------
-// 3. แก้ไข Default Export ให้ห่อ Suspense
+// Component หลัก (ห่อ Suspense)
 // ------------------------------------------------
 export default function QuizPage() {
   return (
