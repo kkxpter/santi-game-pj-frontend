@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; //test
+import { useRouter } from 'next/navigation'; //test2
 import Link from 'next/link';
 import React from 'react'; 
 // import { playSound } from '@/app/lib/sound'; // ⚠️ ถ้ายังไม่มีไฟล์เสียง ให้ปิดบรรทัดนี้ไว้ก่อนไม่งั้นจะ Error หาไฟล์ไม่เจอ
