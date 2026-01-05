@@ -1,5 +1,7 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+
+// 1. เพิ่ม Suspense ใน import
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
@@ -8,7 +10,9 @@ interface GameQuestion extends Question {
   shuffledOptions: { text: string; isCorrect: boolean }[];
 }
 
-// 🏆 Rank Data
+// ... (ส่วน RANK_INFO, MOCK_PLAYERS, getGameSettings, generateQuestions เหมือนเดิม ไม่ต้องแก้) ...
+// ... (ส่วน function QuizGame(...) ทั้งก้อน เหมือนเดิม ไม่ต้องแก้) ...
+
 const RANK_INFO = [
   { title: "ตู้ ATM เดินได้", icon: "💸", desc: "กดปุ๊บ เงินไหลออกปั๊บ... สแกมเมอร์รักคุณที่สุด!", color: "from-gray-400 to-gray-600" },
   { title: "น้องหมูหวาน", icon: "🐷", desc: "หวานเจี๊ยบ... เคี้ยวง่าย อร่อยเหาะสำหรับโจร", color: "from-orange-400 to-red-400" },
@@ -18,7 +22,6 @@ const RANK_INFO = [
   { title: "บิดาแห่งการจับโป๊ะ", icon: "👑", desc: "จุดสูงสุดของห่วงโซ่อาหาร! ไม่มีใครหลอกคุณได้", color: "from-yellow-300 to-amber-500" },
 ];
 
-// 🤖 Mock Players
 const MOCK_PLAYERS = [
   { name: "CyberGod_X", score: 500, isMe: false },
   { name: "CyberNinja_99", score: 480, isMe: false },
@@ -32,7 +35,6 @@ const MOCK_PLAYERS = [
   { name: "Somchai_Jaidee", score: 5, isMe: false },
 ];
 
-// --- 🛠️ Utility Functions ---
 const getGameSettings = (diff: string) => {
   if (diff === 'medium') return { timeLimit: 15000, basePoints: 30, thresholds: [0, 80, 160, 240, 320, 380], diffLabel: "โหมดทั่วไป", diffColor: "bg-yellow-500" };
   if (diff === 'hard') return { timeLimit: 10000, basePoints: 40, thresholds: [0, 100, 200, 300, 400, 475], diffLabel: "โหมดเซียน", diffColor: "bg-red-500" };
@@ -50,15 +52,10 @@ const generateQuestions = (diff: string): GameQuestion[] => {
   });
 };
 
-// ==========================================
-// 🎮 Sub-Component: QuizGame
-// ==========================================
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
   const settings = getGameSettings(diff);
-  const maxPossibleScore = 10 * (settings.basePoints + 10);
-
-  // --- State ---
+  // ... (เนื้อหาใน QuizGame คงเดิมทุกประการ ไม่ต้องแก้) ...
   const [questions] = useState<GameQuestion[]>(() => generateQuestions(diff));
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
@@ -69,14 +66,11 @@ function QuizGame({ diff }: { diff: string }) {
   const [feedback, setFeedback] = useState<{show: boolean, isCorrect: boolean, desc: string, amount: number, isBonus?: boolean} | null>(null);
   const [finalLeaderboard, setFinalLeaderboard] = useState<{name: string, score: number, isMe: boolean}[]>([]);
 
-  // --- Refs ---
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
   const gameStartTimeRef = useRef<number>(0);
   const myScoreRef = useRef<HTMLDivElement | null>(null);
-
-  // --- Functions ---
 
   const finishGame = useCallback(() => {
     const endTime = Date.now();
@@ -184,7 +178,6 @@ function QuizGame({ diff }: { diff: string }) {
     }, 3000); 
   }, [feedback, settings.timeLimit, settings.basePoints, questions, currentIdx, goToNextQuestion, score]); 
 
-  // --- Effects ---
   useEffect(() => {
     gameStartTimeRef.current = Date.now();
     return () => {
@@ -207,18 +200,12 @@ function QuizGame({ diff }: { diff: string }) {
     }
   }, [isFinished, finalLeaderboard]);
 
-
-  // --- Render ---
-
   if (!questions || questions.length === 0) return <div className="text-white text-center mt-20">Loading...</div>;
 
-  // 🏆 End Screen (แก้ไข: ล็อค Scroll ไม่ให้หน้าจอหลักเลื่อน)
   if (isFinished) {
     const myRank = getRank(score);
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-slate-900 p-4 relative z-50 overflow-hidden font-sans">
-        
-        {/* Background & Ambience */}
         <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0a0a0a] to-black"></div>
             <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 blur-[120px] animate-pulse-slow"></div>
@@ -226,12 +213,9 @@ function QuizGame({ diff }: { diff: string }) {
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"></div>
         </div>
 
-        {/* ✅ Main Container: Fix Height & Flex */}
         <div className="relative z-10 w-full max-w-6xl bg-[#0f0f11]/80 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-6 md:p-10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-enter overflow-hidden flex flex-col md:flex-row h-[85vh]">
-            
             <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-gradient-to-r from-transparent via-${myRank.color.split(' ')[1].replace('to-', '')} to-transparent blur-sm`}></div>
 
-            {/* 👈 LEFT SIDE: Personal Result (Static - ไม่เลื่อนตาม) */}
             <div className="flex-none w-full md:w-[40%] flex flex-col items-center justify-center text-center p-4 border-b md:border-b-0 md:border-r border-white/5 relative z-20">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-md shadow-lg">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -262,7 +246,6 @@ function QuizGame({ diff }: { diff: string }) {
                 </div>
             </div>
 
-            {/* 👉 RIGHT SIDE: Leaderboard (Scrollable Here Only!) */}
             <div className="flex-1 flex flex-col p-4 md:pl-8 h-full overflow-hidden">
                 <div className="flex-none flex items-center justify-between mb-4">
                     <h3 className="text-xl md:text-2xl text-white font-black italic tracking-wide flex items-center gap-3">
@@ -271,7 +254,6 @@ function QuizGame({ diff }: { diff: string }) {
                     <span className="text-[10px] bg-white/10 px-2 py-1 rounded text-zinc-400 font-mono">GLOBAL RANKING</span>
                 </div>
 
-                {/* ✅ List Container: Scrollbar อยู่แค่ตรงนี้ */}
                 <div className="flex-1 flex flex-col gap-2 mb-4 overflow-y-auto pr-2 custom-scrollbar relative">
                     {finalLeaderboard.map((player, index) => {
                         let cardStyle = "bg-[#18181b]/50 border-white/5 text-zinc-500 min-h-[48px] border-b border-white/5"; 
@@ -366,13 +348,10 @@ function QuizGame({ diff }: { diff: string }) {
     );
   }
 
-  // 3. Playing Screen
   const currentQ = questions[currentIdx];
 
   return (
     <div className="relative h-screen w-screen flex flex-col p-4 overflow-hidden bg-slate-900 font-sans">
-      
-      {/* Background Layer */}
       <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900 via-slate-900 to-black"></div>
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/30 blur-[120px] animate-pulse-slow mix-blend-screen"></div>
@@ -380,10 +359,7 @@ function QuizGame({ diff }: { diff: string }) {
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"></div>
       </div>
 
-      {/* Main Wrapper */}
       <div className={`relative z-10 flex flex-col h-full w-full max-w-3xl mx-auto transition-all duration-300 ${feedback ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
-        
-        {/* Header */}
         <header className="relative bg-white/5 backdrop-blur-xl border border-white/10 flex justify-between items-center p-3 rounded-2xl mb-4 shadow-lg">
             <div className="flex items-center gap-3">
                 <button 
@@ -411,7 +387,6 @@ function QuizGame({ diff }: { diff: string }) {
             </div>
         </header>
 
-        {/* Question Area */}
         <main className="relative flex-1 flex flex-col items-center justify-center w-full">
             <div className="w-full h-3 bg-white/10 rounded-full mb-6 overflow-hidden border border-white/5">
                 <div 
@@ -454,7 +429,6 @@ function QuizGame({ diff }: { diff: string }) {
         </main>
       </div>
 
-      {/* ✅ Feedback Overlay (เปลี่ยนเป็น Fixed Position เพื่อไม่ให้เลื่อนตาม) */}
       {feedback && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
@@ -490,11 +464,29 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-export default function QuizPage() {
+// ------------------------------------------------
+// 2. สร้าง Component ใหม่สำหรับดึงค่า URL
+// ------------------------------------------------
+function QuizContent() {
   const searchParams = useSearchParams();
   const diff = searchParams.get('diff') || 'easy';
 
   return (
     <QuizGame key={diff} diff={diff} />
+  );
+}
+
+// ------------------------------------------------
+// 3. แก้ไข Default Export ให้ห่อ Suspense
+// ------------------------------------------------
+export default function QuizPage() {
+  return (
+    <Suspense fallback={
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white font-bold text-xl">
+            Loading Game...
+        </div>
+    }>
+        <QuizContent />
+    </Suspense>
   );
 }
