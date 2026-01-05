@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'; // ✅ เพิ่ม Suspense
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
@@ -51,7 +51,7 @@ const generateQuestions = (diff: string): GameQuestion[] => {
 };
 
 // ==========================================
-// 🎮 Sub-Component: QuizGame
+// 🎮 Sub-Component: QuizGame Logic
 // ==========================================
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
@@ -212,7 +212,7 @@ function QuizGame({ diff }: { diff: string }) {
 
   if (!questions || questions.length === 0) return <div className="text-white text-center mt-20">Loading...</div>;
 
-  // 🏆 End Screen (แก้ไข: ล็อค Scroll ไม่ให้หน้าจอหลักเลื่อน)
+  // 🏆 End Screen
   if (isFinished) {
     const myRank = getRank(score);
     return (
@@ -226,12 +226,12 @@ function QuizGame({ diff }: { diff: string }) {
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"></div>
         </div>
 
-        {/* ✅ Main Container: Fix Height & Flex */}
+        {/* ✅ Main Container */}
         <div className="relative z-10 w-full max-w-6xl bg-[#0f0f11]/80 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-6 md:p-10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-enter overflow-hidden flex flex-col md:flex-row h-[85vh]">
             
             <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-gradient-to-r from-transparent via-${myRank.color.split(' ')[1].replace('to-', '')} to-transparent blur-sm`}></div>
 
-            {/* 👈 LEFT SIDE: Personal Result (Static - ไม่เลื่อนตาม) */}
+            {/* 👈 LEFT SIDE: Personal Result */}
             <div className="flex-none w-full md:w-[40%] flex flex-col items-center justify-center text-center p-4 border-b md:border-b-0 md:border-r border-white/5 relative z-20">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-md shadow-lg">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -262,7 +262,7 @@ function QuizGame({ diff }: { diff: string }) {
                 </div>
             </div>
 
-            {/* 👉 RIGHT SIDE: Leaderboard (Scrollable Here Only!) */}
+            {/* 👉 RIGHT SIDE: Leaderboard */}
             <div className="flex-1 flex flex-col p-4 md:pl-8 h-full overflow-hidden">
                 <div className="flex-none flex items-center justify-between mb-4">
                     <h3 className="text-xl md:text-2xl text-white font-black italic tracking-wide flex items-center gap-3">
@@ -271,7 +271,6 @@ function QuizGame({ diff }: { diff: string }) {
                     <span className="text-[10px] bg-white/10 px-2 py-1 rounded text-zinc-400 font-mono">GLOBAL RANKING</span>
                 </div>
 
-                {/* ✅ List Container: Scrollbar อยู่แค่ตรงนี้ */}
                 <div className="flex-1 flex flex-col gap-2 mb-4 overflow-y-auto pr-2 custom-scrollbar relative">
                     {finalLeaderboard.map((player, index) => {
                         let cardStyle = "bg-[#18181b]/50 border-white/5 text-zinc-500 min-h-[48px] border-b border-white/5"; 
@@ -454,7 +453,7 @@ function QuizGame({ diff }: { diff: string }) {
         </main>
       </div>
 
-      {/* ✅ Feedback Overlay (เปลี่ยนเป็น Fixed Position เพื่อไม่ให้เลื่อนตาม) */}
+      {/* ✅ Feedback Overlay */}
       {feedback && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
@@ -490,11 +489,20 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-export default function QuizPage() {
+// ✅ 2. สร้าง Wrapper Component เพื่อดึงค่า SearchParams โดยเฉพาะ
+function QuizContent() {
   const searchParams = useSearchParams();
   const diff = searchParams.get('diff') || 'easy';
 
+  return <QuizGame key={diff} diff={diff} />;
+}
+
+// ✅ 3. Export Main Component ที่ครอบด้วย Suspense
+export default function QuizPage() {
   return (
-    <QuizGame key={diff} diff={diff} />
+    // ⚠️ ต้องมี Suspense ครอบตรงนี้ build ถึงจะผ่าน
+    <Suspense fallback={<div className="text-white text-center mt-20">Loading Game...</div>}>
+      <QuizContent />
+    </Suspense>
   );
 }
