@@ -1,19 +1,17 @@
 'use client';
 
-// ✅ ใส่ force-dynamic บรรทัดแรกสุด เพื่อบอก Vercel ว่า "หน้านี้ไม่ต้อง Prerender"
+// ✅ บรรทัดนี้ช่วยยืนยันกับ Next.js ว่าหน้านี้เป็น Dynamic ไม่ต้อง Prerender แบบ Static
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-// ❌ สังเกตนะครับ: ผมลบ import { useSearchParams } ออกไปเลย รับรอง 100% ว่า Error เดิมไม่มาแน่
-
-// Import ข้อมูลเหมือนเดิม
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
 
-// ==========================================
-// 🎮 1. Config & Data
-// ==========================================
+// ============================================================================
+// 🎮 PART 1: GAME LOGIC (ตัวเกม - รับค่า diff มาทาง Props เท่านั้น)
+// ============================================================================
+
 interface GameQuestion extends Question {
   shuffledOptions: { text: string; isCorrect: boolean }[];
 }
@@ -57,9 +55,7 @@ const generateQuestions = (diff: string): GameQuestion[] => {
   });
 };
 
-// ==========================================
-// 🎮 2. ตัวเกม (Logic เดิม)
-// ==========================================
+// --- ตัว Component เกมหลัก (ไม่ยุ่งกับ URL เอง) ---
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
   const settings = getGameSettings(diff);
@@ -216,6 +212,7 @@ function QuizGame({ diff }: { diff: string }) {
     const myRank = getRank(score);
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-slate-900 p-4 relative z-50 overflow-hidden font-sans">
+        {/* Background */}
         <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0a0a0a] to-black"></div>
             <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 blur-[120px] animate-pulse-slow"></div>
@@ -354,7 +351,6 @@ function QuizGame({ diff }: { diff: string }) {
                     </button>
                 </div>
             </div>
-
         </div>
       </div>
     );
@@ -374,10 +370,7 @@ function QuizGame({ diff }: { diff: string }) {
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"></div>
       </div>
 
-      {/* Main Wrapper */}
       <div className={`relative z-10 flex flex-col h-full w-full max-w-3xl mx-auto transition-all duration-300 ${feedback ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
-        
-        {/* Header */}
         <header className="relative bg-white/5 backdrop-blur-xl border border-white/10 flex justify-between items-center p-3 rounded-2xl mb-4 shadow-lg">
             <div className="flex items-center gap-3">
                 <button 
@@ -405,7 +398,6 @@ function QuizGame({ diff }: { diff: string }) {
             </div>
         </header>
 
-        {/* Question Area */}
         <main className="relative flex-1 flex flex-col items-center justify-center w-full">
             <div className="w-full h-3 bg-white/10 rounded-full mb-6 overflow-hidden border border-white/5">
                 <div 
@@ -448,7 +440,6 @@ function QuizGame({ diff }: { diff: string }) {
         </main>
       </div>
 
-      {/* Feedback Overlay */}
       {feedback && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
@@ -484,31 +475,29 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-// ==========================================
-// 🚀 3. พระเอกตัวจริง (Main Page)
-// ==========================================
+// ============================================================================
+// 🎮 PART 3: PAGE COMPONENT (ตัวรับ URL และ Wrapper)
+// ============================================================================
+// เราแยก Component นี้ออกมาเพื่อห่อ Suspense ให้ถูกต้องตามหลัก Next.js
+// ตัวนี้จะดึง params แล้วส่งต่อให้ QuizGame
+
+function QuizParamWrapper() {
+  const searchParams = useSearchParams();
+  const diff = searchParams.get('diff') || 'easy';
+
+  return <QuizGame diff={diff} />;
+}
+
+// นี่คือ Default Export ที่ Next.js จะเรียกใช้
 export default function QuizPage() {
-  const [mounted, setMounted] = useState(false);
-  const [diff, setDiff] = useState('easy');
-
-  useEffect(() => {
-    // 🔥 ท่าไม้ตายที่แท้จริง: อ่าน window.location หลังจาก Mount แล้วเท่านั้น
-    // วิธีนี้ Next.js Server จะมองไม่เห็น และไม่พยายาม Prerender
-    setMounted(true);
-    const params = new URLSearchParams(window.location.search);
-    setDiff(params.get('diff') || 'easy');
-  }, []);
-
-  // ถ้ายังไม่ Mount (อยู่บน Server หรือเพิ่งโหลด) ให้แสดงหน้า Loading
-  // เพื่อป้องกัน Hydration Error
-  if (!mounted) {
-    return (
+  return (
+    // ✅ หัวใจสำคัญ: Suspense ต้องห่อ Component ที่ใช้ useSearchParams
+    <Suspense fallback={
         <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white font-bold text-xl animate-pulse">
             Loading Game...
         </div>
-    );
-  }
-
-  // เมื่อ Mount เสร็จแล้ว ค่อยแสดงเกม
-  return <QuizGame key={diff} diff={diff} />;
+    }>
+        <QuizParamWrapper />
+    </Suspense>
+  );
 }
