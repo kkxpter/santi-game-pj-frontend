@@ -1,11 +1,15 @@
 'use client';
+
+// ✅ เพิ่มบรรทัดนี้กลับเข้ามา เพื่อปิดการ Prerender ที่ทำให้ Build พัง
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
 
 // ============================================================================
-// 🎮 PART 1: GAME LOGIC (ตัวเกม - รับค่า diff มาทาง Props เท่านั้น)
+// 🎮 PART 1: GAME LOGIC (เหมือนเดิม)
 // ============================================================================
 
 interface GameQuestion extends Question {
@@ -51,18 +55,22 @@ const generateQuestions = (diff: string): GameQuestion[] => {
   });
 };
 
-// --- ตัว Component เกมหลัก (Logic ทั้งหมดอยู่ที่นี่) ---
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
   const settings = getGameSettings(diff);
 
-  const [questions] = useState<GameQuestion[]>(() => generateQuestions(diff));
+  // ใช้ useEffect เพื่อโหลดคำถามเฉพาะฝั่ง Client ป้องกัน Error Hydration
+  const [questions, setQuestions] = useState<GameQuestion[]>([]);
+  
+  useEffect(() => {
+    setQuestions(generateQuestions(diff));
+  }, [diff]);
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [timerProgress, setTimerProgress] = useState(100);
-  const [totalTimeUsed, setTotalTimeUsed] = useState(0);
   const [feedback, setFeedback] = useState<{show: boolean, isCorrect: boolean, desc: string, amount: number, isBonus?: boolean} | null>(null);
   const [finalLeaderboard, setFinalLeaderboard] = useState<{name: string, score: number, isMe: boolean}[]>([]);
 
@@ -73,9 +81,6 @@ function QuizGame({ diff }: { diff: string }) {
   const myScoreRef = useRef<HTMLDivElement | null>(null);
 
   const finishGame = useCallback(() => {
-    const endTime = Date.now();
-    const duration = Math.floor((endTime - gameStartTimeRef.current) / 1000);
-    setTotalTimeUsed(duration);
     setIsFinished(true);
     if (timerRef.current) clearInterval(timerRef.current);
     
@@ -165,20 +170,12 @@ function QuizGame({ diff }: { diff: string }) {
 
     feedbackTimerRef.current = setTimeout(() => {
         if (currentIdx + 1 >= questions.length) {
-             const endTime = Date.now();
-             const duration = Math.floor((endTime - gameStartTimeRef.current) / 1000);
-             setTotalTimeUsed(duration);
-             setIsFinished(true);
-             if (timerRef.current) clearInterval(timerRef.current);
-             
-             const newBoard = [...MOCK_PLAYERS, { name: "YOU (ผู้เล่น)", score: currentScore, isMe: true }]
-               .sort((a, b) => b.score - a.score);
-             setFinalLeaderboard(newBoard);
+             finishGame();
         } else {
              goToNextQuestion();
         }
     }, 3000); 
-  }, [feedback, settings.timeLimit, settings.basePoints, questions, currentIdx, goToNextQuestion, score]); 
+  }, [feedback, settings.timeLimit, settings.basePoints, questions, currentIdx, goToNextQuestion, score, finishGame]); 
 
   useEffect(() => {
     gameStartTimeRef.current = Date.now();
@@ -202,7 +199,7 @@ function QuizGame({ diff }: { diff: string }) {
     }
   }, [isFinished, finalLeaderboard]);
 
-  if (!questions || questions.length === 0) return <div className="text-white text-center mt-20">Loading...</div>;
+  if (!questions || questions.length === 0) return <div className="text-white text-center mt-20">Loading Game...</div>;
 
   if (isFinished) {
     const myRank = getRank(score);
@@ -472,19 +469,15 @@ function QuizGame({ diff }: { diff: string }) {
 }
 
 // ============================================================================
-// 🎮 PART 2: PAGE COMPONENT (Wrapper เพื่อแก้ปัญหา Build Error)
+// 🎮 PART 2: PAGE COMPONENT (Wrapper)
 // ============================================================================
 
-// แยกส่วนที่ดึง Search Params ออกมาเป็น Component ต่างหาก
 function QuizParamWrapper() {
   const searchParams = useSearchParams();
-  const diff = searchParams.get('diff') || 'easy'; // รับค่า diff จาก URL
-
-  // ส่งค่า diff ไปให้เกม
+  const diff = searchParams.get('diff') || 'easy';
   return <QuizGame diff={diff} />;
 }
 
-// หน้าเว็บหลัก: ห่อหุ้มด้วย Suspense เพื่อให้ผ่าน Build
 export default function QuizPage() {
   return (
     <Suspense fallback={
