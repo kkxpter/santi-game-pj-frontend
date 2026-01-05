@@ -211,3 +211,44 @@
   80% { transform: translate(2px, -2px); }
   100% { transform: translate(0); }
 }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+body {
+  color: #fff;
+  background-color: #050505;
+  font-family: 'Chakra Petch', sans-serif;
+  overflow-x: hidden;
+}
+
+/* --- ✅ Custom Scrollbar (ปุ่มเลื่อนสวยๆ) --- */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3f3f46; /* สีเทาเข้ม */
+  border-radius: 10px;
+  border: 2px solid rgba(0,0,0,0); /* ทำขอบมนๆ */
+  background-clip: padding-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #10b981; /* สีเขียวเมื่อเอาเมาส์ชี้ */
+}
+
+/* Animation */
+@keyframes enter {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-enter { animation: enter 0.5s ease-out forwards; }
