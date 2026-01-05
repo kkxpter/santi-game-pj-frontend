@@ -1,6 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react'; // ✅ เพิ่ม Suspense
+
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
@@ -513,10 +514,12 @@ function QuizGameComponent({ diff }: { diff: string }) {
 function QuizSearchParamsWrapper() {
   const searchParams = useSearchParams();
   const diff = searchParams.get('diff') || 'easy';
-  return <QuizGameComponent diff={diff} />;
+  return <QuizGame diff={diff} />;
 }
 
-// 3. หน้า Page หลัก (เป็นจุดเดียวที่ Export Default)
+// ==========================================
+// 🚀 3. หน้า Page หลัก (จุดที่ Export Default)
+// ==========================================
 export default function QuizPage() {
   const [mounted, setMounted] = useState(false);
 
@@ -524,18 +527,13 @@ export default function QuizPage() {
     setMounted(true);
   }, []);
 
-  // ถ้ายังไม่ Mounted (คือตอนที่ Vercel กำลัง Prerender) 
-  // ให้คืนค่า UI เปล่าๆ ไปก่อน เพื่อไม่ให้มันไปรัน useSearchParams
+  // ป้องกันการ Prerender: ถ้ายังไม่ได้รันบน Browser ให้คืนค่าพื้นหลังว่างๆ
   if (!mounted) {
-    return (
-      <div className="h-screen w-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-white/20 font-mono animate-pulse">LOADING SYSTEM...</div>
-      </div>
-    );
+    return <div className="h-screen w-screen bg-slate-900" />;
   }
 
   return (
-    <Suspense fallback={<div className="text-white text-center mt-20">กำลังโหลดระบบ...</div>}>
+    <Suspense fallback={<div className="h-screen w-screen bg-slate-900 flex items-center justify-center text-white">กำลังเตรียมระบบเกม...</div>}>
       <QuizSearchParamsWrapper />
     </Suspense>
   );
