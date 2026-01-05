@@ -1,19 +1,24 @@
 'use client';
 
-// 1. บังคับให้หน้านี้ไม่ต้อง Prerender (แก้ปัญหา Build Error ชะงัดนัก)
+// 1. บังคับ Dynamic Mode เพื่อไม่ให้ Vercel พยายามสร้าง Static Page (แก้ปัญหา Prerender Error)
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-// เช็ค path ให้ถูกนะครับ
+// เช็ค Path ให้ถูกต้องเหมือนเดิมนะครับ
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
+
+// ==========================================
+// 🎮 ส่วนที่ 1: Game Logic (ตัวเกมหลัก)
+// ==========================================
+// Component นี้รับค่า diff ผ่าน Props โดยตรง ไม่ยุ่งกับ URL เอง
+// เพื่อความปลอดภัยในการ Build
 
 interface GameQuestion extends Question {
   shuffledOptions: { text: string; isCorrect: boolean }[];
 }
 
-// ... ส่วน Data คงเดิม ...
 const RANK_INFO = [
   { title: "ตู้ ATM เดินได้", icon: "💸", desc: "กดปุ๊บ เงินไหลออกปั๊บ... สแกมเมอร์รักคุณที่สุด!", color: "from-gray-400 to-gray-600" },
   { title: "น้องหมูหวาน", icon: "🐷", desc: "หวานเจี๊ยบ... เคี้ยวง่าย อร่อยเหาะสำหรับโจร", color: "from-orange-400 to-red-400" },
@@ -85,7 +90,6 @@ function QuizGame({ diff }: { diff: string }) {
     
     setFinalLeaderboard(newBoard);
 
-    // เช็คว่ารันบน browser ก่อนเรียก localStorage (กันเหนียว)
     if (typeof window !== 'undefined') {
         const saved = JSON.parse(localStorage.getItem('cyberStakes_played') || '{}');
         localStorage.setItem('cyberStakes_played', JSON.stringify({ ...saved, [diff]: (saved[diff] || 0) + 1 }));
@@ -354,7 +358,7 @@ function QuizGame({ diff }: { diff: string }) {
     );
   }
 
-  // 3. Playing Screen
+  // Playing Screen
   const currentQ = questions[currentIdx];
 
   return (
@@ -478,29 +482,33 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-// ------------------------------------------------
-// Component แยก Logic การอ่าน URL
-// ------------------------------------------------
-function QuizContent() {
-  const searchParams = useSearchParams();
+// ==========================================
+// 🛡️ ส่วนที่ 2: Parameter Wrapper (ตัวห่อหุ้ม)
+// ==========================================
+// Component นี้มีหน้าที่เดียวคือ ดึงค่า URL และส่งต่อให้ Game
+// โดย *ต้อง* แยกออกมาเพื่อนำไปห่อด้วย Suspense ได้
+
+function QuizParamsWrapper() {
+  const searchParams = useSearchParams(); // เรียกใช้ hook ตรงนี้เท่านั้น
   const diff = searchParams.get('diff') || 'easy';
 
-  return (
-    <QuizGame key={diff} diff={diff} />
-  );
+  return <QuizGame diff={diff} />;
 }
 
-// ------------------------------------------------
-// Component หลัก (ห่อ Suspense)
-// ------------------------------------------------
+// ==========================================
+// 🚀 ส่วนที่ 3: Page Entry (หน้าหลัก)
+// ==========================================
+// นี่คือ Default Export ที่ Next.js จะเรียกใช้
+// ต้องมี Suspense ห่อ Wrapper ไว้เสมอ
+
 export default function QuizPage() {
   return (
     <Suspense fallback={
-        <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white font-bold text-xl">
-            Loading Game...
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white font-bold text-xl animate-pulse">
+            Loading Game Configuration...
         </div>
     }>
-        <QuizContent />
+        <QuizParamsWrapper />
     </Suspense>
   );
 }
