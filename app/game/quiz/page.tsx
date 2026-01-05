@@ -1,24 +1,22 @@
 'use client';
 
-// ✅ บรรทัดนี้สำคัญ! สั่งให้หน้านี้ห้ามทำ Static Generation เด็ดขาด
-export const dynamic = 'force-dynamic';
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation'; 
-// ❌ ลบ useSearchParams ออกไปเลย ไม่ใช้แล้ว!
+import { useRouter } from 'next/navigation';
+// ❌ ลบ useSearchParams ของ Next.js ทิ้งไปเลย ไม่ใช้แม่งแล้ว!
 
-// เช็ค path ให้ถูกต้อง
+// import ข้อมูลเหมือนเดิม
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
 
 // ==========================================
-// 🎮 ส่วนที่ 1: Game Logic (เหมือนเดิม)
+// 🎮 ส่วน Logic เกม (เหมือนเดิมเป๊ะ)
 // ==========================================
 
 interface GameQuestion extends Question {
   shuffledOptions: { text: string; isCorrect: boolean }[];
 }
 
+// ... (Copy ส่วน RANK_INFO, MOCK_PLAYERS, getGameSettings มาใส่เหมือนเดิม) ...
 const RANK_INFO = [
   { title: "ตู้ ATM เดินได้", icon: "💸", desc: "กดปุ๊บ เงินไหลออกปั๊บ... สแกมเมอร์รักคุณที่สุด!", color: "from-gray-400 to-gray-600" },
   { title: "น้องหมูหวาน", icon: "🐷", desc: "หวานเจี๊ยบ... เคี้ยวง่าย อร่อยเหาะสำหรับโจร", color: "from-orange-400 to-red-400" },
@@ -58,9 +56,7 @@ const generateQuestions = (diff: string): GameQuestion[] => {
   });
 };
 
-// ---------------------------------------------------
-// Component เกมหลัก (รับค่า diff เป็น Prop ตรงๆ)
-// ---------------------------------------------------
+// ... (Function QuizGame ตัวเดิม เป๊ะๆ ไม่ต้องแก้ logic ข้างใน) ...
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
   const settings = getGameSettings(diff);
@@ -217,7 +213,6 @@ function QuizGame({ diff }: { diff: string }) {
     const myRank = getRank(score);
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-slate-900 p-4 relative z-50 overflow-hidden font-sans">
-        {/* Background & Ambience */}
         <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0a0a0a] to-black"></div>
             <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 blur-[120px] animate-pulse-slow"></div>
@@ -270,6 +265,7 @@ function QuizGame({ diff }: { diff: string }) {
 
                 <div className="flex-1 flex flex-col gap-2 mb-4 overflow-y-auto pr-2 custom-scrollbar relative">
                     {finalLeaderboard.map((player, index) => {
+                        // ... (Copy Logic การ render Leaderboard card เดิมมาใส่) ...
                         let cardStyle = "bg-[#18181b]/50 border-white/5 text-zinc-500 min-h-[48px] border-b border-white/5"; 
                         let rankDisplay = <span className="text-xs font-mono opacity-30">#{index + 1}</span>;
                         let nameStyle = "text-xs text-zinc-400 font-medium";
@@ -486,32 +482,26 @@ function QuizGame({ diff }: { diff: string }) {
 }
 
 // ==========================================
-// 🚀 ส่วนที่ 2: พระเอกขี่ม้าขาว (วิธีแก้ Error)
+// 🚀 Main Component (แก้ไขใหม่หมดจด)
 // ==========================================
-
 export default function QuizPage() {
-  // 1. ตั้ง State เริ่มต้นเป็น null ก่อนเพื่อรอโหลดหน้า
   const [diff, setDiff] = useState<string | null>(null);
 
   useEffect(() => {
-    // 2. 🟢 ใช้ Javascript ปกติอ่าน URL 
-    // (Next.js Build Server จะมองไม่เห็นส่วนนี้ ทำให้ไม่ Error 100%)
+    // 🔥 ท่าไม้ตาย: อ่านค่าจาก window โดยตรง (Next.js Server มองไม่เห็นบรรทัดนี้)
     if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
-        const difficulty = params.get('diff') || 'easy';
-        setDiff(difficulty);
+        setDiff(params.get('diff') || 'easy');
     }
   }, []);
 
-  // 3. ถ้ายังหา diff ไม่เจอ (กำลังโหลด) ให้แสดง Loading
   if (!diff) {
-      return (
+    return (
         <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white font-bold text-xl animate-pulse">
-            Loading Game...
+            Loading...
         </div>
-      );
+    );
   }
 
-  // 4. เมื่อได้ค่า diff แล้ว ให้ render เกม (ใส่ key เพื่อให้มัน reset เกมใหม่ถ้ายูสเซอร์เปลี่ยน diff)
   return <QuizGame key={diff} diff={diff} />;
 }
