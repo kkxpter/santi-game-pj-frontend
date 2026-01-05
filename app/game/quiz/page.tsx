@@ -1,8 +1,4 @@
 'use client';
-
-// ✅ บรรทัดนี้ช่วยยืนยันกับ Next.js ว่าหน้านี้เป็น Dynamic ไม่ต้อง Prerender แบบ Static
-export const dynamic = 'force-dynamic';
-
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
@@ -55,7 +51,7 @@ const generateQuestions = (diff: string): GameQuestion[] => {
   });
 };
 
-// --- ตัว Component เกมหลัก (ไม่ยุ่งกับ URL เอง) ---
+// --- ตัว Component เกมหลัก (Logic ทั้งหมดอยู่ที่นี่) ---
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
   const settings = getGameSettings(diff);
@@ -179,7 +175,7 @@ function QuizGame({ diff }: { diff: string }) {
                .sort((a, b) => b.score - a.score);
              setFinalLeaderboard(newBoard);
         } else {
-            goToNextQuestion();
+             goToNextQuestion();
         }
     }, 3000); 
   }, [feedback, settings.timeLimit, settings.basePoints, questions, currentIdx, goToNextQuestion, score]); 
@@ -476,22 +472,21 @@ function QuizGame({ diff }: { diff: string }) {
 }
 
 // ============================================================================
-// 🎮 PART 3: PAGE COMPONENT (ตัวรับ URL และ Wrapper)
+// 🎮 PART 2: PAGE COMPONENT (Wrapper เพื่อแก้ปัญหา Build Error)
 // ============================================================================
-// เราแยก Component นี้ออกมาเพื่อห่อ Suspense ให้ถูกต้องตามหลัก Next.js
-// ตัวนี้จะดึง params แล้วส่งต่อให้ QuizGame
 
+// แยกส่วนที่ดึง Search Params ออกมาเป็น Component ต่างหาก
 function QuizParamWrapper() {
   const searchParams = useSearchParams();
-  const diff = searchParams.get('diff') || 'easy';
+  const diff = searchParams.get('diff') || 'easy'; // รับค่า diff จาก URL
 
+  // ส่งค่า diff ไปให้เกม
   return <QuizGame diff={diff} />;
 }
 
-// นี่คือ Default Export ที่ Next.js จะเรียกใช้
+// หน้าเว็บหลัก: ห่อหุ้มด้วย Suspense เพื่อให้ผ่าน Build
 export default function QuizPage() {
   return (
-    // ✅ หัวใจสำคัญ: Suspense ต้องห่อ Component ที่ใช้ useSearchParams
     <Suspense fallback={
         <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white font-bold text-xl animate-pulse">
             Loading Game...
