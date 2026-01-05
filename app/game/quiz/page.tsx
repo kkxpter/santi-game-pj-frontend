@@ -490,19 +490,32 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-// ✅ 2. สร้าง Wrapper Component เพื่อดึงค่า SearchParams โดยเฉพาะ
+// ✅ 1. Wrapper Component (ดึงค่าจาก URL)
 function QuizContent() {
   const searchParams = useSearchParams();
   const diff = searchParams.get('diff') || 'easy';
-
   return <QuizGame key={diff} diff={diff} />;
 }
 
-// ✅ 3. Export Main Component ที่ครอบด้วย Suspense
+// ✅ 2. Export Main Component (หน้า Page หลัก)
 export default function QuizPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ป้องกันการ Prerender ของ Vercel: ถ้ายังไม่ได้ Mount (ฝั่ง Server) ให้คืนค่าว่าง
+  if (!mounted) {
+    return (
+      <div className="h-screen w-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-white/20 animate-pulse">INITIALIZING SYSTEM...</div>
+      </div>
+    );
+  }
+
   return (
-    // ⚠️ ต้องมี Suspense ครอบตรงนี้ build ถึงจะผ่าน
-    <Suspense fallback={<div className="text-white text-center mt-20">Loading Game...</div>}>
+    <Suspense fallback={<div className="text-white text-center mt-20">กำลังโหลดคำถาม...</div>}>
       <QuizContent />
     </Suspense>
   );
