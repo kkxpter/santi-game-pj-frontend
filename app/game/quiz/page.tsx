@@ -490,14 +490,33 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-// ✅ 1. Wrapper Component (ดึงค่าจาก URL)
-function QuizContent() {
-  const searchParams = useSearchParams();
-  const diff = searchParams.get('diff') || 'easy';
-  return <QuizGame key={diff} diff={diff} />;
+// --- (ส่วนประกอบด้านบนพวก Interface และ Data คงไว้ตามเดิม) ---
+
+// 1. แยก Logic เกมออกมา (ห้ามเรียกใช้ searchParams ในนี้โดยตรง)
+function QuizGameComponent({ diff }: { diff: string }) {
+  const router = useRouter();
+  const settings = getGameSettings(diff);
+  // ... (ใส่ Logic ทั้งหมดของ useState, useEffect ที่เคยอยู่ใน QuizGame เดิมที่นี่)
+  
+  // สมมติชื่อตัวแปรที่ใช้ดึงคำถาม
+  const [questions] = useState(() => generateQuestions(diff));
+
+  if (!questions || questions.length === 0) return <div className="text-white text-center mt-20">Loading...</div>;
+
+  return (
+    // ... (ส่วน JSX ทั้งหมดที่คุณเขียนไว้)
+    <div>เนื้อหาเกมของคุณ</div>
+  );
 }
 
-// ✅ 2. Export Main Component (หน้า Page หลัก)
+// 2. สร้างส่วนดึงค่า URL (ต้องอยู่ใน Suspense เท่านั้น)
+function QuizSearchParamsWrapper() {
+  const searchParams = useSearchParams();
+  const diff = searchParams.get('diff') || 'easy';
+  return <QuizGameComponent diff={diff} />;
+}
+
+// 3. หน้า Page หลัก (เป็นจุดเดียวที่ Export Default)
 export default function QuizPage() {
   const [mounted, setMounted] = useState(false);
 
@@ -505,18 +524,19 @@ export default function QuizPage() {
     setMounted(true);
   }, []);
 
-  // ป้องกันการ Prerender ของ Vercel: ถ้ายังไม่ได้ Mount (ฝั่ง Server) ให้คืนค่าว่าง
+  // ถ้ายังไม่ Mounted (คือตอนที่ Vercel กำลัง Prerender) 
+  // ให้คืนค่า UI เปล่าๆ ไปก่อน เพื่อไม่ให้มันไปรัน useSearchParams
   if (!mounted) {
     return (
       <div className="h-screen w-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-white/20 animate-pulse">INITIALIZING SYSTEM...</div>
+        <div className="text-white/20 font-mono animate-pulse">LOADING SYSTEM...</div>
       </div>
     );
   }
 
   return (
-    <Suspense fallback={<div className="text-white text-center mt-20">กำลังโหลดคำถาม...</div>}>
-      <QuizContent />
+    <Suspense fallback={<div className="text-white text-center mt-20">กำลังโหลดระบบ...</div>}>
+      <QuizSearchParamsWrapper />
     </Suspense>
   );
 }
