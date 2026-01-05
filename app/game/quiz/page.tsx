@@ -1,11 +1,13 @@
 'use client';
 
-// ใช้ force-dynamic เพื่อความชัวร์สูงสุด
+// ✅ บรรทัดนี้สำคัญ! สั่งให้หน้านี้ห้ามทำ Static Generation เด็ดขาด
 export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation'; // เหลือแค่ useRouter พอ
-// เช็ค Path ให้ถูกต้องเหมือนเดิม
+import { useRouter } from 'next/navigation'; 
+// ❌ ลบ useSearchParams ออกไปเลย ไม่ใช้แล้ว!
+
+// เช็ค path ให้ถูกต้อง
 import { questionsEasy, questionsMedium, questionsHard, Question } from '@/app/lib/gameData';
 import { playSound } from '@/app/lib/sound';
 
@@ -56,6 +58,9 @@ const generateQuestions = (diff: string): GameQuestion[] => {
   });
 };
 
+// ---------------------------------------------------
+// Component เกมหลัก (รับค่า diff เป็น Prop ตรงๆ)
+// ---------------------------------------------------
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
   const settings = getGameSettings(diff);
@@ -481,7 +486,7 @@ function QuizGame({ diff }: { diff: string }) {
 }
 
 // ==========================================
-// 🚀 ส่วนที่ 2: Main Page (เปลี่ยนวิธีอ่าน URL)
+// 🚀 ส่วนที่ 2: พระเอกขี่ม้าขาว (วิธีแก้ Error)
 // ==========================================
 
 export default function QuizPage() {
@@ -489,10 +494,13 @@ export default function QuizPage() {
   const [diff, setDiff] = useState<string | null>(null);
 
   useEffect(() => {
-    // 2. ใช้ Javascript ปกติอ่าน URL (Next.js Build Server จะมองไม่เห็นส่วนนี้ ทำให้ไม่ Error)
-    const params = new URLSearchParams(window.location.search);
-    const difficulty = params.get('diff') || 'easy';
-    setDiff(difficulty);
+    // 2. 🟢 ใช้ Javascript ปกติอ่าน URL 
+    // (Next.js Build Server จะมองไม่เห็นส่วนนี้ ทำให้ไม่ Error 100%)
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const difficulty = params.get('diff') || 'easy';
+        setDiff(difficulty);
+    }
   }, []);
 
   // 3. ถ้ายังหา diff ไม่เจอ (กำลังโหลด) ให้แสดง Loading
