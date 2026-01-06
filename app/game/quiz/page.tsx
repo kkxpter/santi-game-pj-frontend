@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'; // ✅ เพิ่ม Suspense
 import { useSearchParams, useRouter } from 'next/navigation';
 import { playSound } from '@/app/lib/sound';
 
@@ -48,7 +48,7 @@ const getGameSettings = (diff: string) => {
 };
 
 // ==========================================
-// 🎮 Sub-Component: QuizGame
+// 🎮 Sub-Component: QuizGame Logic
 // ==========================================
 function QuizGame({ diff }: { diff: string }) {
   const router = useRouter();
@@ -276,7 +276,6 @@ function QuizGame({ diff }: { diff: string }) {
         </div>
     );
   }
-
   if (!questions || questions.length === 0) return (
     <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <h1 className="text-3xl">⚠️ ไม่พบข้อมูลคำถาม</h1>
@@ -299,7 +298,6 @@ function QuizGame({ diff }: { diff: string }) {
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"></div>
         </div>
 
-        {/* Main Container */}
         <div className="relative z-10 w-full max-w-6xl bg-[#0f0f11]/80 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-6 md:p-10 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] animate-enter overflow-hidden flex flex-col md:flex-row h-[85vh]">
             
             <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-gradient-to-r from-transparent via-${myRank.color.split(' ')[1].replace('to-', '')} to-transparent blur-sm`}></div>
@@ -551,11 +549,20 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-export default function QuizPage() {
+// ✅ 2. สร้าง Wrapper Component เพื่อดึงค่า SearchParams โดยเฉพาะ
+function QuizContent() {
   const searchParams = useSearchParams();
   const diff = searchParams.get('diff') || 'easy';
 
+  return <QuizGame key={diff} diff={diff} />;
+}
+
+// ✅ 3. Export Main Component ที่ครอบด้วย Suspense
+export default function QuizPage() {
   return (
-    <QuizGame key={diff} diff={diff} />
+    // ⚠️ ต้องมี Suspense ครอบตรงนี้ build ถึงจะผ่าน
+    <Suspense fallback={<div className="text-white text-center mt-20">Loading Game...</div>}>
+      <QuizContent />
+    </Suspense>
   );
 }

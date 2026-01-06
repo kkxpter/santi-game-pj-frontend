@@ -97,7 +97,6 @@ export default function LoginPage() {
             {isLoading ? 'กำลังโหลด...' : 'LOGIN เข้าเกม'}
           </button>
         </form>
-
         <div className="mt-8 text-center">
           <p className="text-gray-400 text-sm">
             ยังไม่มีบัญชีใช่ไหม?{' '}
