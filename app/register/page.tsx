@@ -56,66 +56,76 @@ export default function RegisterPage() {
     }
   };
 
+  // ค้นหาฟังก์ชัน handleRegister แล้วแทนที่ด้วยโค้ดนี้ครับ
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // --- Validation ---
+    // --- Validation (เหมือนเดิม) ---
     if (formData.password !== formData.confirmPassword) { setError('รหัสผ่านไม่ตรงกัน'); return; }
     if (formData.password.length < 4) { setError('รหัสผ่านสั้นเกินไป'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('รูปแบบอีเมลไม่ถูกต้อง'); return; }
     if (formData.phone.length !== 10) { setError('เบอร์โทรศัพท์ต้องมี 10 หลัก'); return; }
 
-    if (!formData.birthDay || !formData.birthMonth || !formData.birthYear) {
-        setError('กรุณากรอกวันเกิดให้ครบถ้วน');
-        return;
-    }
-
+    // แปลงวันเกิด
     const day = parseInt(formData.birthDay);
     const month = parseInt(formData.birthMonth);
     const yearBE = parseInt(formData.birthYear);
-
     const yearAD = yearBE - 543;
+
+    // ตรวจสอบความถูกต้องของวันที่ (Validation Logic เดิมของคุณ)
     const birthDateObj = new Date(yearAD, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (birthDateObj.getFullYear() !== yearAD || 
-        birthDateObj.getMonth() !== month - 1 || 
-        birthDateObj.getDate() !== day) {
-        setError('วันที่ระบุไม่มีจริงในปฏิทิน');
-        return;
+    if (birthDateObj.getFullYear() !== yearAD || birthDateObj.getMonth() !== month - 1 || birthDateObj.getDate() !== day) {
+        setError('วันที่ระบุไม่มีจริงในปฏิทิน'); return;
     }
+    if (birthDateObj > today) { setError('วันเกิดห้ามเกินวันนี้นะ'); return; }
 
-    if (birthDateObj > today) {
-        setError('นี่คุณมาจากอนาคตรึยังไง? ⏳ (วันเกิดห้ามเกินวันนี้นะ)');
-        return;
-    }
-
+    // คำนวณอายุ
     let age = today.getFullYear() - birthDateObj.getFullYear();
     const m = today.getMonth() - birthDateObj.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
-        age--;
-    }
-
+    if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) { age--; }
     if (age < 10) { setError('ขออภัย ผู้ใช้งานต้องมีอายุ 10 ปีขึ้นไป'); return; }
-    if (age > 200) { setError('อายุเกินความเป็นจริง'); return; }
 
     setIsLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // ✅ เตรียมข้อมูลสำหรับส่งให้ Backend (Format วันที่ต้องเป็น YYYY-MM-DD)
+      const payload = {
+          username: formData.username,
+          password: formData.password,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          birthdate: `${yearAD}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` // แปลงเป็น YYYY-MM-DD
+      };
+
+      // ✅ ยิง API ไปที่ Backend Port 4000
+      const res = await fetch('http://localhost:4000/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+          throw new Error(data.error || 'สมัครสมาชิกไม่สำเร็จ');
+      }
       
-      console.log('Register Success:', { ...formData, age });
-      
-      // ✅ FIX 2: เปลี่ยนให้เด้งไปหน้า Login แทน
+      console.log('Register Success:', data);
+      alert('สมัครสมาชิกเรียบร้อย! กรุณาเข้าสู่ระบบ'); // แจ้งเตือนหน่อย
       router.push('/login');
 
     } catch (err) {
-      setError((err as Error).message || 'เกิดข้อผิดพลาด');
+      setError((err as Error).message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
       setIsLoading(false);
     }
   };
+
+//
 
   return (
     <main className="relative w-screen h-screen flex flex-col items-center justify-center p-4 bg-slate-900 font-sans overflow-hidden">

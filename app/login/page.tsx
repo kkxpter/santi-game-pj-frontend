@@ -2,13 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // ✅ 1. เพิ่ม import Link
-
-// ... (ส่วน Mock Users และ Logic login เหมือนเดิม) ...
-const MOCK_USERS = [
-  { username: 'admin', password: '1234', name: 'Admin สุดหล่อ' },
-  { username: 'player', password: '1111', name: 'Player One' }
-];
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,26 +10,38 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // จำลองเวลาโหลด
-    setTimeout(() => {
-      const user = MOCK_USERS.find(
-        (u) => u.username === formData.username && u.password === formData.password
-      );
+    try {
+      // ✅ ส่ง Username/Password ไปตรวจที่ Backend
+      const res = await fetch('http://localhost:4000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password
+        })
+      });
 
-      if (user) {
-        localStorage.setItem('token', 'mock-secure-token-12345');
-        localStorage.setItem('user_name', user.name);
-        router.push('/');
-      } else {
-        setError('ชื่อผู้ใช้หรือรหัสผ่านผิด! (ลอง admin / 1234)');
-        setIsLoading(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'เข้าสู่ระบบไม่สำเร็จ');
       }
-    }, 1000);
+
+      // ✅ [จุดที่แก้] บันทึกข้อมูลลง LocalStorage โดยใช้ key ชื่อ 'user'
+      // เพื่อให้ตรงกับหน้า QuizGame ที่รออ่าน key ชื่อ 'user' อยู่
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      router.push('/');
+
+    } catch (err) {
+      setError((err as Error).message);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -92,7 +98,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* ✅ 2. แก้ไขส่วนล่างสุด เป็นปุ่มไปหน้าสมัครสมาชิก777 */}
         <div className="mt-8 text-center">
           <p className="text-gray-400 text-sm">
             ยังไม่มีบัญชีใช่ไหม?{' '}
