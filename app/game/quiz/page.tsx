@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { playSound } from '@/app/lib/sound';
 
@@ -551,11 +551,19 @@ function QuizGame({ diff }: { diff: string }) {
   );
 }
 
-export default function QuizPage() {
+function QuizContent() {
   const searchParams = useSearchParams();
   const diff = searchParams.get('diff') || 'easy';
 
+  return <QuizGame key={diff} diff={diff} />;
+}
+
+// แก้ function หลักให้มี Suspense ครอบ QuizContent
+export default function QuizPage() {
   return (
-    <QuizGame key={diff} diff={diff} />
+    // fallback คือสิ่งที่แสดงระหว่างรอโหลด URL (ใส่อะไรก็ได้ หรือใส่ div ว่างๆ)
+    <Suspense fallback={<div className="h-screen w-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>}>
+      <QuizContent />
+    </Suspense>
   );
 }

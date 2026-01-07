@@ -1,12 +1,19 @@
 // app/lib/sound.ts
 
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 export const playSound = (type: 'click' | 'correct' | 'wrong' | 'smash' | 'hit') => {
   // 1. ป้องกันการรันบน Server (Next.js SSR)
   if (typeof window === 'undefined') return;
 
   try {
     // 2. จัดการเรื่อง Type ของ AudioContext (รองรับ Safari/Webkit และ Chrome)
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass: (typeof AudioContext) | undefined =
+      window.AudioContext || window.webkitAudioContext;
 
     if (!AudioContextClass) return;
 
