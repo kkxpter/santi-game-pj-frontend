@@ -36,7 +36,7 @@ export default function LoginPage() {
       // เพื่อให้ตรงกับหน้า QuizGame ที่รออ่าน key ชื่อ 'user' อยู่
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      router.push('/');
+      window.location.href = '/';
 
     } catch (err) {
       setError((err as Error).message);
@@ -97,6 +97,7 @@ export default function LoginPage() {
             {isLoading ? 'กำลังโหลด...' : 'LOGIN เข้าเกม'}
           </button>
         </form>
+
         <div className="mt-8 text-center">
           <p className="text-gray-400 text-sm">
             ยังไม่มีบัญชีใช่ไหม?{' '}
