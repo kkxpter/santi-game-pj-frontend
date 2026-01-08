@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import React from 'react';
 
+// Icons Component (Type safety not strictly needed here but good practice)
 const Icons = {
   User: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
   Mail: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
@@ -25,20 +26,19 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
 
-  // Refs
+  // ✅ แก้ไข 1: ระบุ Type ให้ useRef ว่าเป็น HTMLInputElement
   const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
 
+  // ✅ แก้ไข 2: ระบุ Type ของ Event (ChangeEvent)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    // กรองให้พิมพ์ได้แค่ตัวเลข
     if (['phone', 'birthDay', 'birthMonth', 'birthYear'].includes(name)) {
         if (!/^\d*$/.test(value)) return;
     }
 
-    // Auto Focus Logic
     if (name === 'birthDay' && value.length === 2) {
         monthRef.current?.focus();
     }
@@ -49,6 +49,7 @@ export default function RegisterPage() {
     setFormData({ ...formData, [name]: value });
   };
 
+  // ✅ แก้ไข 3: ระบุ Type ของ Parameter prevRef และ Event
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, prevRef: React.RefObject<HTMLInputElement | null>) => {
     if (e.key === 'Backspace' && (e.target as HTMLInputElement).value === '') {
         prevRef.current?.focus();
@@ -59,18 +60,16 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    // --- Validation (เหมือนเดิม) ---
+    // --- Validation ---
     if (formData.password !== formData.confirmPassword) { setError('รหัสผ่านไม่ตรงกัน'); return; }
     if (formData.password.length < 4) { setError('รหัสผ่านสั้นเกินไป'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('รูปแบบอีเมลไม่ถูกต้อง'); return; }
     if (formData.phone.length !== 10) { setError('เบอร์โทรศัพท์ต้องมี 10 หลัก'); return; }
 
-    // แปลงวันเกิด
     const day = parseInt(formData.birthDay);
     const month = parseInt(formData.birthMonth);
-    const yearAD = parseInt(formData.birthYear); // ✅ ใช้ปี ค.ศ. โดยตรง ไม่ต้องลบ 543 แล้ว
+    const yearAD = parseInt(formData.birthYear);
 
-    // ตรวจสอบความถูกต้องของวันที่
     const birthDateObj = new Date(yearAD, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -80,7 +79,6 @@ export default function RegisterPage() {
     }
     if (birthDateObj > today) { setError('วันเกิดห้ามเกินวันนี้นะ'); return; }
 
-    // คำนวณอายุ
     let age = today.getFullYear() - birthDateObj.getFullYear();
     const m = today.getMonth() - birthDateObj.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) { age--; }
@@ -94,12 +92,13 @@ export default function RegisterPage() {
           password: formData.password,
           email: formData.email,
           phone: formData.phone,
-          // address: formData.address, // ❌ เอาออก หรือส่งเป็น String ว่างไปก่อนเพราะปิดช่องกรอกไว้
           address: '', 
           birthdate: `${yearAD}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       };
 
-      const res = await fetch('http://localhost:4000/register', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+      const res = await fetch(`${apiUrl}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -116,6 +115,7 @@ export default function RegisterPage() {
       router.push('/login');
 
     } catch (err) {
+      // ✅ แก้ไข 4: แปลง Type ของ err ให้เป็น Error Object
       setError((err as Error).message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
       setIsLoading(false);
     }
@@ -132,10 +132,8 @@ export default function RegisterPage() {
          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]"></div>
       </div>
 
-      {/* Card Container */}
       <div className="relative z-10 w-full max-w-2xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.3)] animate-enter">
         
-        {/* Header */}
         <div className="text-center mb-6 flex items-center justify-center gap-4">
             <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-3xl shadow-inner border border-white/10 animate-bounce">
                 📝
@@ -148,7 +146,6 @@ export default function RegisterPage() {
 
         <form onSubmit={handleRegister} className="flex flex-col gap-3">
             
-            {/* Row 1: Username & Email */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="group relative">
                     <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-blue-400 transition-colors uppercase tracking-wider">ชื่อผู้ใช้</label>
@@ -172,7 +169,6 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            {/* Row 2: เบอร์โทร & วันเกิด */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="group relative">
                     <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-yellow-400 transition-colors uppercase tracking-wider">เบอร์โทรศัพท์</label>
@@ -187,7 +183,6 @@ export default function RegisterPage() {
                 </div>
                 
                 <div className="group relative">
-                    {/* ✅ แก้ไข Label เป็น ค.ศ. */}
                     <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-yellow-400 transition-colors uppercase tracking-wider">วันเดือนปีเกิด (วว/ดด/ปี ค.ศ.)</label>
                     
                     <div className="relative flex items-center w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 transition-all focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500">
@@ -213,7 +208,6 @@ export default function RegisterPage() {
                             />
                             <span className="text-gray-500">/</span>
                             
-                            {/* ✅ แก้ไข Placeholder เป็น ค.ศ. */}
                             <input 
                                 ref={yearRef}
                                 type="tel" name="birthYear" placeholder="2000" maxLength={4} required
@@ -226,20 +220,6 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            {/* Row 3: ที่อยู่ (COMMENTED OUT) */}
-            {/* <div className="group relative">
-                <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-pink-400 transition-colors uppercase tracking-wider">ที่อยู่</label>
-                <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-pink-400 transition-colors"><Icons.Map /></div>
-                    <input type="text" name="address" required value={formData.address} onChange={handleChange}
-                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all placeholder-gray-600"
-                        placeholder="บ้านเลขที่, ถนน, ตำบล..."
-                    />
-                </div>
-            </div>
-            */}
-
-            {/* Row 4: รหัสผ่าน */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="group relative">
                     <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-purple-400 transition-colors uppercase tracking-wider">รหัสผ่าน</label>
@@ -263,14 +243,12 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            {/* Error Message */}
             {error && (
                 <div className="text-red-400 text-xs text-center bg-red-500/10 p-2 rounded-xl border border-red-500/20 animate-pulse font-bold flex items-center justify-center gap-2">
                     <span>⚠️</span> {error}
                 </div>
             )}
 
-            {/* Action Area */}
             <div className="mt-4 flex flex-col gap-3">
                 <button 
                     type="submit" 
