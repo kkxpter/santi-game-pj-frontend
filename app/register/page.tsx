@@ -49,14 +49,12 @@ export default function RegisterPage() {
     setFormData({ ...formData, [name]: value });
   };
 
-  // ✅ FIX 1: แก้ Type ให้รองรับ null (RefObject<HTMLInputElement | null>)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, prevRef: React.RefObject<HTMLInputElement | null>) => {
     if (e.key === 'Backspace' && (e.target as HTMLInputElement).value === '') {
         prevRef.current?.focus();
     }
   };
 
-  // ค้นหาฟังก์ชัน handleRegister แล้วแทนที่ด้วยโค้ดนี้ครับ
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -70,10 +68,9 @@ export default function RegisterPage() {
     // แปลงวันเกิด
     const day = parseInt(formData.birthDay);
     const month = parseInt(formData.birthMonth);
-    const yearBE = parseInt(formData.birthYear);
-    const yearAD = yearBE - 543;
+    const yearAD = parseInt(formData.birthYear); // ✅ ใช้ปี ค.ศ. โดยตรง ไม่ต้องลบ 543 แล้ว
 
-    // ตรวจสอบความถูกต้องของวันที่ (Validation Logic เดิมของคุณ)
+    // ตรวจสอบความถูกต้องของวันที่
     const birthDateObj = new Date(yearAD, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -92,17 +89,16 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // ✅ เตรียมข้อมูลสำหรับส่งให้ Backend (Format วันที่ต้องเป็น YYYY-MM-DD)
       const payload = {
           username: formData.username,
           password: formData.password,
           email: formData.email,
           phone: formData.phone,
-          address: formData.address,
-          birthdate: `${yearAD}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` // แปลงเป็น YYYY-MM-DD
+          // address: formData.address, // ❌ เอาออก หรือส่งเป็น String ว่างไปก่อนเพราะปิดช่องกรอกไว้
+          address: '', 
+          birthdate: `${yearAD}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       };
 
-      // ✅ ยิง API ไปที่ Backend Port 4000
       const res = await fetch('http://localhost:4000/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -116,7 +112,7 @@ export default function RegisterPage() {
       }
       
       console.log('Register Success:', data);
-      alert('สมัครสมาชิกเรียบร้อย! กรุณาเข้าสู่ระบบ'); // แจ้งเตือนหน่อย
+      alert('สมัครสมาชิกเรียบร้อย! กรุณาเข้าสู่ระบบ');
       router.push('/login');
 
     } catch (err) {
@@ -124,8 +120,6 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
-
-//
 
   return (
     <main className="relative w-screen h-screen flex flex-col items-center justify-center p-4 bg-slate-900 font-sans overflow-hidden">
@@ -193,7 +187,8 @@ export default function RegisterPage() {
                 </div>
                 
                 <div className="group relative">
-                    <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-yellow-400 transition-colors uppercase tracking-wider">วันเดือนปีเกิด (พ.ศ.)</label>
+                    {/* ✅ แก้ไข Label เป็น ค.ศ. */}
+                    <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-yellow-400 transition-colors uppercase tracking-wider">วันเดือนปีเกิด (วว/ดด/ปี ค.ศ.)</label>
                     
                     <div className="relative flex items-center w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2.5 transition-all focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-yellow-400 transition-colors pointer-events-none">
@@ -203,7 +198,7 @@ export default function RegisterPage() {
                         <div className="flex items-center gap-1 pl-6 w-full text-white text-sm">
                             <input 
                                 ref={dayRef}
-                                type="tel" name="birthDay" placeholder="วว" maxLength={2} required
+                                type="tel" name="birthDay" placeholder="01" maxLength={2} required
                                 value={formData.birthDay} onChange={handleChange} 
                                 className="w-[3ch] bg-transparent text-center focus:outline-none placeholder-gray-600"
                             />
@@ -211,16 +206,17 @@ export default function RegisterPage() {
                             
                             <input 
                                 ref={monthRef}
-                                type="tel" name="birthMonth" placeholder="ดด" maxLength={2} required
+                                type="tel" name="birthMonth" placeholder="01" maxLength={2} required
                                 value={formData.birthMonth} onChange={handleChange} 
                                 onKeyDown={(e) => handleKeyDown(e, dayRef)} 
                                 className="w-[3ch] bg-transparent text-center focus:outline-none placeholder-gray-600"
                             />
                             <span className="text-gray-500">/</span>
                             
+                            {/* ✅ แก้ไข Placeholder เป็น ค.ศ. */}
                             <input 
                                 ref={yearRef}
-                                type="tel" name="birthYear" placeholder="ปปปป" maxLength={4} required
+                                type="tel" name="birthYear" placeholder="2000" maxLength={4} required
                                 value={formData.birthYear} onChange={handleChange} 
                                 onKeyDown={(e) => handleKeyDown(e, monthRef)}
                                 className="w-[5ch] bg-transparent text-center focus:outline-none placeholder-gray-600"
@@ -230,8 +226,8 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            {/* Row 3: ที่อยู่ */}
-            <div className="group relative">
+            {/* Row 3: ที่อยู่ (COMMENTED OUT) */}
+            {/* <div className="group relative">
                 <label className="text-[10px] text-gray-400 font-bold ml-2 mb-1 block group-focus-within:text-pink-400 transition-colors uppercase tracking-wider">ที่อยู่</label>
                 <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-pink-400 transition-colors"><Icons.Map /></div>
@@ -241,6 +237,7 @@ export default function RegisterPage() {
                     />
                 </div>
             </div>
+            */}
 
             {/* Row 4: รหัสผ่าน */}
             <div className="grid grid-cols-2 gap-3">
